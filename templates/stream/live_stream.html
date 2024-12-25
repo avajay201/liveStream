@@ -107,7 +107,7 @@
 {% block body %}
 <div class="stream-container">
     <div class="live-stream">
-        <img src="{% url 'live_stream' %}" alt="Live Stream">
+        <video style="width: 100%;" id="live-stream" autoPlay playsInline src="" alt="Live Stream">
     </div>
     <div class="chat">
         <div class="chat-header">Live Chat</div>
@@ -121,9 +121,10 @@
 </div>
 {% endblock %}
 {% block script %}
-document.addEventListener("DOMContentLoaded", function () {
-    const roomId = "{{room_id}}";
+document.addEventListener("DOMContentLoaded", async function () {
+    const stream_id = "{{stream_id}}";
     const user = "{{user}}";
+    const is_super_user = "{{user_type}}";
 
     const currentTime = ()=>{
         const now = new Date();
@@ -155,39 +156,192 @@ document.addEventListener("DOMContentLoaded", function () {
         messagesContainer.appendChild(messageParentEle);
         document.getElementById('message_input').value = '';
     };
+
+    // ****************************** WebRTC ****************************** //
+    peerRef = null;
+    ws = null;
+    let loaclStream = new MediaStream();
+    remoteVideo = document.getElementById('live-stream');
+    if (is_super_user == 'True'){
+        navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+        })
+        .then((stream)=>{
+            loaclStream = stream;
+            remoteVideo.srcObject = stream;
+        })
+        .catch((err)=>{
+            console.log('Error:', err);
+        });
+    }
+
+    const sendSignal = (action, message)=>{
+        let jsonStr = JSON.stringify({
+            'peer': user,
+            'action': action,
+            'message': message,
+        });
+        ws.send(jsonStr);
+    };
+
+    const createOffer = (receive_channel_name)=>{
+        let peer = new RTCPeerConnection(null);
+
+        addLocalTracks(peer);
+
+        setOnTrack(peer);
     
-    const sendMessage = document.getElementById('send-message');
-    sendMessage.addEventListener('click', ()=>{
-        const message = document.getElementById('message_input').value;
-        if (message.trim()){
-            ws.send(JSON.stringify({'message': message, 'sender': user}));
-            addMessage('send', message, user);
+        peer.addEventListener('iceconnectionstatechange', ()=>{
+            let iceConnectionState = peer.iceConnectionState;
+            if (iceConnectionState === 'failed' || iceConnectionState === 'disconnected' || iceConnectionState === 'closed'){
+                console.log('User disconnected.');
+    
+                if (iceConnectionState != 'closed'){
+                    peer.close();
+                }
+            }
+            if (iceConnectionState === 'connected'){
+                console.log('User connected.');
+            }
+        });
+    
+        peer.addEventListener('icecandidate', (event)=>{
+            if (event.candidate){
+                return;
+            };
+            sendSignal('new-offer', {
+                'sdp': peer.localDescription,
+                'receive_channel_name': receive_channel_name,
+            })
+        });
+    
+        peer.createOffer().
+        then(o => peer.setLocalDescription(o))
+        .then(()=>{
+        });
+
+        peerRef = peer;
+    };
+
+    const addLocalTracks = (peer)=>{
+        loaclStream.getTracks().forEach(track=>{
+            peer.addTrack(track, loaclStream);
+        });
+    };
+
+    const setOnTrack = (peer)=>{
+        console.log('Remote Video:', remoteVideo, 'Super User:', is_super_user);
+        if (remoteVideo && is_super_user != 'True'){
+            let remoteStream = new MediaStream();
+            // remoteVideo.srcObject = remoteStream;
+            remoteVideo.play();
+            peer.addEventListener('track', async(event)=>{
+                console.log('Track received:', remoteStream.getTracks());
+                // remoteStream.addTrack(event.track, remoteStream);
+                remoteStream.addTrack(event.track);
+                remoteVideo.srcObject = remoteStream;
+                remoteVideo.muted = true;
+                remoteVideo.play().then(() => {
+                    console.log('Video started muted');
+                    document.getElementById('unmute-button').addEventListener('click', () => {
+                        remoteVideo.muted = false;
+                        console.log('Audio unmuted');
+                    });
+                }).catch(error => {
+                    console.error('Autoplay failed:', error);
+                });
+            });
         };
+    };
+
+    const createAnswer = (offer, receive_channel_name)=>{
+        let peer = new RTCPeerConnection(null);
+
+        addLocalTracks(peer);
+
+        setOnTrack(peer);
+
+        peer.addEventListener('iceconnectionstatechange', ()=>{
+            let iceConnectionState = peer.iceConnectionState;
+            if (iceConnectionState === 'failed' || iceConnectionState === 'disconnected' || iceConnectionState === 'closed'){
+                console.log('User disconnected.');
+
+                if (iceConnectionState != 'closed'){
+                    peer.close();
+                };
+            }
+            if (iceConnectionState === 'connected'){
+                console.log('User connected.');
+            }
+        });
+
+        peer.addEventListener('icecandidate', (event)=>{
+            if (event.candidate){
+                return;
+            };
+            sendSignal('new-answer', {
+                'sdp': peer.localDescription,
+                'receive_channel_name': receive_channel_name,
+            })
+        });
+    
+        peer.setRemoteDescription(offer)
+        .then(()=>{
+            return peer.createAnswer();
+        })
+        .then((a)=>{
+            peer.setLocalDescription(a);
+        });
+
+        peerRef = peer;
+    };
+
+    const wsMessagehandler = (event)=>{
+        let parsedData = JSON.parse(event.data);
+        let peerUser = parsedData['message']['peer'];
+        let action = parsedData['message']['action'];
+
+        if (user === peerUser){
+            return;
+        }
+
+        let receive_channel_name = parsedData['message']['receive_channel_name'];
+
+        if (action === 'new-peer'){
+            createOffer(receive_channel_name)
+            return;
+        }
+
+        if (action === 'new-offer'){
+            let offer = parsedData['message']['message']['sdp'];
+            let receive_channel_name = parsedData['message']['message']['receive_channel_name'];
+            createAnswer(offer, receive_channel_name);
+            return;
+        }
+    
+        if (action === 'new-answer'){
+            let answer = parsedData['message']['message']['sdp'];
+            peerRef.setRemoteDescription(answer);
+            return;
+        };
+    };
+
+    const WS_URL = `ws://${window.location.host}/stream/live/${stream_id}/`;
+
+    ws = new WebSocket(WS_URL);
+
+    ws.addEventListener('open', (e)=>{
+        sendSignal('new-peer', {});
     });
 
-    const WS_URL = `ws://127.0.0.1:5000/ws/${roomId}/`;
-    const ws = new WebSocket(WS_URL);
+    ws.addEventListener('message', wsMessagehandler);
 
-    ws.onopen = () => {
-        console.log('Connected');
-    };
+    ws.addEventListener('close', (e)=>{
+    });
 
-    ws.onmessage = (message) => {
-        const messageData = JSON.parse(message.data);
-        console.log('Message from server:', messageData);
-        const msg = messageData?.message;
-        const sender = messageData?.sender;
-        if (sender != user){
-            addMessage('receive', msg, sender);
-        }
-    };
+    ws.addEventListener('error', ()=>{
+    });
 
-    ws.onerror = (error) => {
-        console.log('Error:', error);
-    };
-
-    ws.onclose = () => {
-        console.log('Connection closed!');
-    };
 });
 {% endblock %}

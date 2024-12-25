@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}AV Stream{% endblock %}
+
+{% block body %}
+<div class="container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background-color: #f9fafc; font-family: Arial, sans-serif;">
+    <h1 style="font-size: 2.5rem; color: #333333; margin-bottom: 20px;">Welcome to AV Stream!</h1>
+    <div class="stream-options" style="display: flex; gap: 15px;">
+        <a href="/stream/start-stream/" id="start-stream" style="cursor: pointer; background-color: #28a745; color: white; border: none; padding: 10px 20px; font-size: 1rem; border-radius: 5px; transition: background-color 0.3s ease; text-decoration: none;">
+            Start Stream
+        </a>
+        <button data-bs-toggle="modal" data-bs-target="#joinStream" id="join-stream" style="cursor: pointer; background-color: #007BFF; color: white; border: none; padding: 10px 20px; font-size: 1rem; border-radius: 5px; transition: background-color 0.3s ease;">
+            Join Stream
+        </button>
+    </div>
+    <a href="/stream/logout/" id="start-stream" style="margin-top: 10px; cursor: pointer; background-color: red; color: white; border: none; padding: 10px 20px; font-size: 1rem; border-radius: 5px; transition: background-color 0.3s ease; text-decoration: none;">
+        Logout
+    </a>
+</div>
+
+<div class="modal fade" id="joinStream" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="post" action="/stream/join-stream/">
+        {% csrf_token %}
+        <div class="modal-content">
+        <div class="modal-header" style="justify-content: center;">
+            <h5 class="modal-title" id="staticBackdropLabel">Join Stream</h5>
+        </div>
+        <div class="modal-body">
+            <input name="stream_id" style="width: 100%;" placeholder="Enter stream id" required />
+        </div>
+        <div class="modal-footer" style="justify-content: center;">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancle</button>
+            <button type="submit" class="btn btn-primary">Join</button>
+        </div>
+        </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends '../base.html' %}
+{% block title %}Start Stream{% endblock %}
+{% block style %}
+.start-stream button:hover {
+    background-color: #0056b3;
+}
+.start-stream input, .start-stream select, .start-stream textarea {
+    width: 100%;
+    padding: 10px;
+    font-size: 1rem;
+    border: 1px solid #cccccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+.start-stream input:focus, .start-stream select:focus, .start-stream textarea:focus {
+    outline: none;
+    border-color: #007BFF;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+{% endblock %}
+{% block body %}
+<div class="start-stream" style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f9; font-family: Arial, sans-serif;">
+    <div style="width: 100%; max-width: 500px; padding: 20px; background-color: #ffffff; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); border-radius: 10px;">
+        <h1 style="font-size: 2rem; color: #333333; text-align: center; margin-bottom: 20px;">Start a Live Stream</h1>
+        <form method="POST" style="display: flex; flex-direction: column; gap: 15px;">
+            {% csrf_token %}
+            <div style="font-size: 1rem; color: #555555;">
+                {{ form.as_p }}
+            </div>
+            <button type="submit" style="background-color: #28a745; color: white; border: none; padding: 10px 15px; font-size: 1rem; border-radius: 5px; cursor: pointer; transition: background-color 0.3s ease;">
+                Start
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

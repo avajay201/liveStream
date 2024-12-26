@@ -22,15 +22,31 @@
 <div class="start-stream" style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f9; font-family: Arial, sans-serif;">
     <div style="width: 100%; max-width: 500px; padding: 20px; background-color: #ffffff; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); border-radius: 10px;">
         <h1 style="font-size: 2rem; color: #333333; text-align: center; margin-bottom: 20px;">Start a Live Stream</h1>
-        <form method="POST" style="display: flex; flex-direction: column; gap: 15px;">
+        <form id="start-stream-form" method="POST" style="display: flex; flex-direction: column; gap: 15px;">
             {% csrf_token %}
             <div style="font-size: 1rem; color: #555555;">
                 {{ form.as_p }}
             </div>
-            <button type="submit" style="background-color: #28a745; color: white; border: none; padding: 10px 15px; font-size: 1rem; border-radius: 5px; cursor: pointer; transition: background-color 0.3s ease;">
+            <button type="button" id="start-stream" style="background-color: #28a745; color: white; border: none; padding: 10px 15px; font-size: 1rem; border-radius: 5px; cursor: pointer; transition: background-color 0.3s ease;">
                 Start
             </button>
         </form>
     </div>
 </div>
+{% endblock %}
+{% block script %}
+document.getElementById('start-stream').addEventListener('click', ()=>{
+    navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+    })
+    .then((stream)=>{
+        const streamForm = document.getElementById('start-stream-form');
+        streamForm.submit();
+    })
+    .catch((err)=>{
+        console.log('Error:', err);
+        alert('Camera access failed!')
+    });
+})
 {% endblock %}

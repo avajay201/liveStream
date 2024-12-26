@@ -19,13 +19,9 @@ def start_stream(request):
     if request.method == 'POST':
         form = StreamForm(request.POST)
         if form.is_valid():
-            camera = cv2.VideoCapture(0)
-            if not camera.isOpened():
-                messages.error(request, "Unable to open the camera.")
-                return redirect('home')
             title = form.cleaned_data['title']
             stream, _ = Stream.objects.get_or_create(title=title, created_by=request.user)
-            return render(request, 'stream/live_stream.html', {'title': stream.title, 'stream_id': stream.unique_key, 'user': request.user.username, 'user_type': request.user.is_superuser})
+            return render(request, 'stream/live_stream.html', {'stream': stream})
     else:
         form = StreamForm()
 
@@ -45,8 +41,7 @@ def join_stream(request):
     if not stream:
         messages.error(request, "Stream does not exists!")
         return redirect('home')
-
-    return render(request, 'stream/live_stream.html', {'title': stream.title, 'stream_id': stream.unique_key, 'user': request.user.username, 'user_type': request.user.is_superuser})
+    return render(request, 'stream/live_stream.html', {'stream': stream})
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -58,13 +53,17 @@ def login_view(request):
         if user is not None:
             login(request, user)
             return redirect("home")
+        messages.error(request, "Invalid credentials!")
     return render(request, "login.html")
-
-def chat_room(request, room_name):
-    return render(request, 'chat.html', {
-        'room_name': room_name
-    })
 
 def logout_view(request):
     logout(request)
     return redirect("login")
+
+def close_stream(request, key):
+    stream = Stream.objects.filter(unique_key=key).first()
+    if not stream:
+        messages.error(request, "Stream does not exists!")
+        return redirect("home")
+    stream.delete()
+    return redirect("home")

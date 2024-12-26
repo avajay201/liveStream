@@ -1,62 +1,92 @@
 {% extends '../base.html' %}
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ stream.title }}{% endblock %}
 {% block style %}
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+}
+
 .stream-container {
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px;
+}
+
+.stream-info {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.stream-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+}
+
+.stream-chat-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 20px;
-    padding: 20px;
+    width: 100%;
     max-width: 1200px;
-    margin: 0 auto;
-    align-items: flex-start;
 }
 
 .live-stream {
-    flex: 3;
-    border: 3px solid #4caf50;
+    position: relative;
+    flex: 1;
+    max-width: 700px;
+    background-color: black;
     border-radius: 10px;
     overflow: hidden;
 }
 
-.live-stream img {
-    width: 100%;
-    height: auto;
-    display: block;
-}
-
 .chat {
     flex: 1;
-    background: #f7f7f7;
-    border: 3px solid #4caf50;
+    max-width: 400px;
+    background-color: white;
     border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    height: 500px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    height: 100%;
 }
 
 .chat-header {
-    background: #4caf50;
-    color: white;
-    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 18px;
     font-weight: bold;
-    text-align: center;
-    border-bottom: 2px solid #388e3c;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.live-users-count {
+    color: #007BFF;
 }
 
 .messages {
     flex: 1;
     overflow-y: auto;
-    padding: 10px;
+    margin-bottom: 20px;
+    padding-right: 5px;
+    overflow-y: auto;
+    max-height: 300px;
 }
 
 .message {
     margin-bottom: 3px;
     padding: 5px;
     border-radius: 5px;
-}
-
-.message p {
-    margin: 0;
+    border-bottom: 1px solid gray;
 }
 
 .send {
@@ -71,75 +101,154 @@
     text-align: left;
 }
 
-.msg-time {
-    font-size: 10px;
-    color: #757575;
-}
-
 .chat-input {
     display: flex;
-    border-top: 2px solid #4caf50;
+    gap: 10px;
 }
 
 .chat-input input {
     flex: 1;
     padding: 10px;
-    border: none;
-    outline: none;
-    border-radius: 0;
-    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
 }
 
 .chat-input button {
     padding: 10px 20px;
-    background-color: #4caf50;
-    color: white;
     border: none;
+    background-color: #007BFF;
+    color: white;
+    border-radius: 5px;
     cursor: pointer;
-    font-weight: bold;
     transition: background-color 0.3s;
 }
 
 .chat-input button:hover {
-    background-color: #388e3c;
+    background-color: #0056b3;
+}
+
+.close-stream-btn {
+    margin-top: 15px;
+    padding: 10px 20px;
+    border: none;
+    background-color: #ff4d4d;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.close-stream-btn:hover {
+    background-color: #e60000;
+}
+
+#stream-options {
+    display: none;
+    justify-content: center;
+    gap: 20px;
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+}
+
+#mic-button, #camera-button {
+    background-color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+#mic-icon, #camera-button {
+    font-size: 24px;
+    color: black;
+}
+
+#mic-button:hover, #camera-button:hover {
+    background-color: #f0f0f0; /* Slight hover effect */
+}
+
+/* Media Queries for Responsiveness */
+@media (max-width: 768px) {
+    .stream-chat-container {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .live-stream {
+        max-width: 100%;
+    }
+
+    .chat {
+        max-width: 100%;
+    }
 }
 {% endblock %}
 {% block body %}
 <div class="stream-container">
-    <div class="live-stream">
-        <video style="width: 100%;" id="live-stream" autoPlay playsInline src="" alt="Live Stream">
+    <div class="stream-info">
+        <p class="stream-title">{{stream.title}} by {{stream.created_by.username}}</p>
     </div>
-    <div class="chat">
-        <div class="chat-header">Live Chat</div>
-        <div class="messages" id="messages">
+    <div class="stream-chat-container">
+        <div class="live-stream">
+            <video style="width: 100%;" id="live-stream" autoPlay playsInline src="" alt="Live Stream"></video>
+            <div id="stream-options">
+                <button id="mic-button">
+                    <i id="mic-icon" class="bi bi-mic-fill"></i>
+                </button>
+                <button id="camera-button">
+                    <i id="camera-icon" class="bi bi-camera-video-fill"></i>
+                </button>
+            </div>
         </div>
-        <div class="chat-input">
-            <input id="message_input" placeholder="Enter your message" />
-            <button id="send-message">Send</button>
+        <div class="chat">
+            <div class="chat-header">
+                <span>Live Chat</span>
+                <span class="live-users-count">Live Users: <span id="live-members">0</span></span>
+            </div>
+            <div class="messages" id="messages"></div>
+            <div class="chat-input">
+                <input id="message_input" placeholder="Enter your message" />
+                <button id="send-message">Send</button>
+            </div>
+            {% if request.user.is_superuser %}<button id="close-stream" class="close-stream-btn">Close Stream</button>{% endif %}
         </div>
     </div>
 </div>
 {% endblock %}
 {% block script %}
 document.addEventListener("DOMContentLoaded", async function () {
-    const stream_id = "{{stream_id}}";
-    const user = "{{user}}";
-    const is_super_user = "{{user_type}}";
+    const stream_id = "{{stream.unique_key}}";
+    const user = "{{request.user.username}}";
+    const is_super_user = "{{request.user.is_superuser}}";
 
-    const currentTime = ()=>{
+    const currentTime = () => {
         const now = new Date();
     
         let hours = now.getHours();
         const minutes = now.getMinutes();
+        const seconds = now.getSeconds(); // Get the current seconds
         const isAM = hours < 12;
     
         hours = hours % 12 || 12; // Converts hour '0' to '12'
     
         const formattedMinutes = minutes.toString().padStart(2, '0');
+        const formattedSeconds = seconds.toString().padStart(2, '0'); // Format seconds to two digits
     
         const period = isAM ? 'AM' : 'PM';
     
-        return `${hours}:${formattedMinutes}${period}`;
+        return `${hours}:${formattedMinutes}:${formattedSeconds} ${period}`; // Include seconds in the output
+    };
+
+    const scrollToBottom = () => {
+        const messagesContainer = document.getElementById('messages');
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
     };
 
     const addMessage = (type, msg, sender)=>{
@@ -147,40 +256,81 @@ document.addEventListener("DOMContentLoaded", async function () {
         const messageParentEle = document.createElement('div');
         const messageEle = document.createElement('p');
         const messageTimeEle = document.createElement('span');
-        messageParentEle.classList = `${type} message`;
+        messageParentEle.classList = `${type === 'connection' ? 'left' : type} message`;
         messageTimeEle.classList = 'msg-time';
-        messageEle.textContent = msg;
-        messageTimeEle.innerHTML = `<strong>${sender}</strong> ${currentTime()}`;
+        messageEle.innerHTML = msg;
+        messageTimeEle.innerHTML = type === 'connection' ? currentTime() : `<strong>${sender}</strong> ${currentTime()}`;
         messageParentEle.appendChild(messageEle);
         messageParentEle.appendChild(messageTimeEle);
         messagesContainer.appendChild(messageParentEle);
-        document.getElementById('message_input').value = '';
+        scrollToBottom();
     };
+
+    const sendMessageEle = document.getElementById('send-message');
+    sendMessageEle.addEventListener('click', ()=>{
+        const message = document.getElementById('message_input').value;
+        if (message.trim()){
+            sendMessage('chat', message, user);
+            document.getElementById('message_input').value = '';
+        };
+    });
 
     // ****************************** WebRTC ****************************** //
     peerRef = null;
     ws = null;
-    let loaclStream = new MediaStream();
+    let localStream = new MediaStream();
     remoteVideo = document.getElementById('live-stream');
     if (is_super_user == 'True'){
+        const streamOptions = document.getElementById('stream-options');
+        const micButton = document.getElementById('mic-button');
+        const micIcon = document.getElementById('mic-icon');
+        const videoButton = document.getElementById('camera-button');
+        const videoIcon = document.getElementById('camera-icon');
+    
         navigator.mediaDevices.getUserMedia({
             video: true,
             audio: true,
         })
         .then((stream)=>{
-            loaclStream = stream;
+            localStream = stream;
             remoteVideo.srcObject = stream;
+            streamOptions.style.display = 'flex';
+            micButton.addEventListener('click', () => {
+                const audioTrack = localStream.getAudioTracks()[0];
+                if (audioTrack.enabled) {
+                    audioTrack.enabled = false;
+                    micIcon.classList.remove('bi-mic-fill');
+                    micIcon.classList.add('bi-mic-mute-fill');
+                } else {
+                    audioTrack.enabled = true;
+                    micIcon.classList.remove('bi-mic-mute-fill');
+                    micIcon.classList.add('bi-mic-fill');
+                }
+            });
+            videoButton.addEventListener('click', () => {
+                const videoTrack = localStream.getVideoTracks()[0];
+                if (videoTrack.enabled) {
+                    videoTrack.enabled = false;
+                    videoIcon.classList.remove('bi-camera-video-fill');
+                    videoIcon.classList.add('bi-camera-video-off-fill');
+                } else {
+                    videoTrack.enabled = true;
+                    videoIcon.classList.remove('bi-camera-video-off-fill');
+                    videoIcon.classList.add('bi-camera-video-fill');
+                }
+            });
         })
         .catch((err)=>{
-            console.log('Error:', err);
+            alert('Camera access failed!')
         });
     }
 
-    const sendSignal = (action, message)=>{
+    const sendMessage = (action, message, sender=null)=>{
         let jsonStr = JSON.stringify({
             'peer': user,
             'action': action,
             'message': message,
+            'sender': sender,
         });
         ws.send(jsonStr);
     };
@@ -195,14 +345,12 @@ document.addEventListener("DOMContentLoaded", async function () {
         peer.addEventListener('iceconnectionstatechange', ()=>{
             let iceConnectionState = peer.iceConnectionState;
             if (iceConnectionState === 'failed' || iceConnectionState === 'disconnected' || iceConnectionState === 'closed'){
-                console.log('User disconnected.');
     
                 if (iceConnectionState != 'closed'){
                     peer.close();
                 }
             }
             if (iceConnectionState === 'connected'){
-                console.log('User connected.');
             }
         });
     
@@ -210,7 +358,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             if (event.candidate){
                 return;
             };
-            sendSignal('new-offer', {
+            sendMessage('new-offer', {
                 'sdp': peer.localDescription,
                 'receive_channel_name': receive_channel_name,
             })
@@ -225,32 +373,22 @@ document.addEventListener("DOMContentLoaded", async function () {
     };
 
     const addLocalTracks = (peer)=>{
-        loaclStream.getTracks().forEach(track=>{
-            peer.addTrack(track, loaclStream);
+        localStream.getTracks().forEach(track=>{
+            peer.addTrack(track, localStream);
         });
     };
 
     const setOnTrack = (peer)=>{
-        console.log('Remote Video:', remoteVideo, 'Super User:', is_super_user);
         if (remoteVideo && is_super_user != 'True'){
             let remoteStream = new MediaStream();
-            // remoteVideo.srcObject = remoteStream;
             remoteVideo.play();
             peer.addEventListener('track', async(event)=>{
-                console.log('Track received:', remoteStream.getTracks());
-                // remoteStream.addTrack(event.track, remoteStream);
                 remoteStream.addTrack(event.track);
                 remoteVideo.srcObject = remoteStream;
                 remoteVideo.muted = true;
                 remoteVideo.play().then(() => {
-                    console.log('Video started muted');
-                    document.getElementById('unmute-button').addEventListener('click', () => {
-                        remoteVideo.muted = false;
-                        console.log('Audio unmuted');
-                    });
-                }).catch(error => {
-                    console.error('Autoplay failed:', error);
-                });
+                    remoteVideo.muted = false;
+                }).catch(error => {});
             });
         };
     };
@@ -265,14 +403,12 @@ document.addEventListener("DOMContentLoaded", async function () {
         peer.addEventListener('iceconnectionstatechange', ()=>{
             let iceConnectionState = peer.iceConnectionState;
             if (iceConnectionState === 'failed' || iceConnectionState === 'disconnected' || iceConnectionState === 'closed'){
-                console.log('User disconnected.');
 
                 if (iceConnectionState != 'closed'){
                     peer.close();
                 };
             }
             if (iceConnectionState === 'connected'){
-                console.log('User connected.');
             }
         });
 
@@ -280,7 +416,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             if (event.candidate){
                 return;
             };
-            sendSignal('new-answer', {
+            sendMessage('new-answer', {
                 'sdp': peer.localDescription,
                 'receive_channel_name': receive_channel_name,
             })
@@ -301,6 +437,37 @@ document.addEventListener("DOMContentLoaded", async function () {
         let parsedData = JSON.parse(event.data);
         let peerUser = parsedData['message']['peer'];
         let action = parsedData['message']['action'];
+
+        if (action === 'chat'){
+            const message = parsedData['message']['message'];
+            const sender = parsedData['message']['sender'];
+            addMessage(peerUser === user ? 'send' : 'receive', message, sender);
+        }
+
+        if (action === 'close' && is_super_user != 'True'){
+            const message = parsedData['message']['message'];
+            alert(message);
+            window.location.replace('/');
+        }
+
+        if (action === 'count-members'){
+            const liveMembers = parsedData['message']['members'];
+            const target = parsedData['message']['target'];
+            const status = parsedData['message']['status'];
+            document.getElementById('live-members').textContent = liveMembers;
+            addMessage('connection', `<strong>${target}</strong> ${status}.`, '');
+            return;
+        }
+
+        if (action === 'error'){
+            const target = parsedData['message']['target'];
+            const message = parsedData['message']['message'];
+            if (target === user){
+                alert(message);
+                ws.close();
+                window.location.replace('/');
+            }
+        }
 
         if (user === peerUser){
             return;
@@ -327,12 +494,12 @@ document.addEventListener("DOMContentLoaded", async function () {
         };
     };
 
-    const WS_URL = `ws://${window.location.host}/stream/live/${stream_id}/`;
+    const WS_URL = `wss://${window.location.host}/stream/live/${stream_id}/${user}/`;
 
     ws = new WebSocket(WS_URL);
 
     ws.addEventListener('open', (e)=>{
-        sendSignal('new-peer', {});
+        sendMessage('new-peer', {});
     });
 
     ws.addEventListener('message', wsMessagehandler);
@@ -341,6 +508,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
     ws.addEventListener('error', ()=>{
+    });
+
+    document.getElementById('close-stream').addEventListener('click', ()=>{
+        const status = confirm('Ate you sure want to close this stream?');
+        if (status){
+            window.location.href = `/`;
+        };
     });
 
 });
